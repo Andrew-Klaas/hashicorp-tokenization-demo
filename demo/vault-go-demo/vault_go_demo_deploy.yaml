@@ -20,10 +20,6 @@ spec:
       version: v1
   template:
     metadata: 
-      annotations:
-        consul.hashicorp.com/connect-inject: "true"
-        consul.hashicorp.com/service-tags: "v1"
-        consul.hashicorp.com/connect-service-upstreams: "vault-ui:8200, pq-postgresql-headless:5432"
       name: vault-go-demo
       labels:
         app: vault-go-demo
@@ -33,7 +29,7 @@ spec:
       automountServiceAccountToken: true
       containers:
         - name: vault-go-demo
-          image: aklaas2/vault-go-demo:latest
+          image: aklaas2/vault-go-demo-tokenization:latest
           ports:
           - containerPort: 9090
             protocol: TCP

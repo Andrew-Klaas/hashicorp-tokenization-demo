@@ -22,7 +22,6 @@ global:
       apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
       seccomp.security.alpha.kubernetes.io/defaultProfileName:  runtime/default
       apparmor.security.beta.kubernetes.io/defaultProfileName:  runtime/default
-      consul.hashicorp.com/connect-inject: 'true'
 injector:
   # True if you want to enable vault agent injection.
   enabled: true
@@ -52,7 +51,7 @@ injector:
   # image sets the repo and tag of the vault-k8s image to use for the injector.
   image:
     repository: "hashicorp/vault-k8s"
-    tag: "0.10.0"
+    tag: "0.10.1"
     pullPolicy: IfNotPresent
 
   # agentImage sets the repo and tag of the Vault image to use for the Vault Agent
@@ -60,7 +59,7 @@ injector:
   # required.
   agentImage:
     repository: "vault"
-    tag: "1.7.0"
+    tag: "1.7.2"
 
   # The default values for the injected Vault Agent containers.
   agentDefaults:
@@ -178,8 +177,7 @@ injector:
   # Extra annotations to attach to the injector pods
   # This can either be YAML or a YAML-formatted multi-line templated string map
   # of the annotations to apply to the injector pods
-  annotations: |
-    consul.hashicorp.com/connect-inject: 'true'
+  annotations: {}
 
   # Extra labels to attach to the agent-injector
   # This should be a YAML map of the labels to apply to the injector
@@ -192,8 +190,7 @@ injector:
   # Injector service specific config
   service:
     # Extra annotations to attach to the injector service
-    annotations: |
-      consul.hashicorp.com/connect-inject: 'true'
+    annotations: {}
 
 server:
   # If not set to true, Vault server will not be installed. See vault.mode in _helpers.tpl for implementation details
@@ -204,8 +201,8 @@ server:
   # By default no direct resource request is made.
 
   image:
-    repository: "vault"
-    tag: "1.7.0"
+    repository: "hashicorp/vault-enterprise"
+    tag: "1.7.2_ent"
     # Overrides the default Image Pull Policy
     pullPolicy: IfNotPresent
 
@@ -239,8 +236,7 @@ server:
     labels:
       app: vault
       # traffic: external
-    annotations: |
-      consul.hashicorp.com/connect-inject: 'true'
+    annotations: 
       # |
       # kubernetes.io/ingress.class: nginx
       # kubernetes.io/tls-acme: "true"
@@ -431,8 +427,7 @@ server:
   # Extra annotations to attach to the server pods
   # This can either be YAML or a YAML-formatted multi-line templated string map
   # of the annotations to apply to the server pods
-  annotations: |
-    consul.hashicorp.com/connect-inject: 'true'
+  annotations: {}
 
 
   # Enables a headless service to be used by the Vault Statefulset

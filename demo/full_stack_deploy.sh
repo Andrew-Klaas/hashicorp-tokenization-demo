@@ -7,11 +7,6 @@ helm repo add hashicorp https://helm.releases.hashicorp.com
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-cd consul
-./consul.sh
-cd ..
-kubectl wait --timeout=180s --for=condition=Ready $(kubectl get pod --selector=app=consul -o name)
-
 cd postgresql
 ./postgresql.sh
 cd ..

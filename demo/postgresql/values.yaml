@@ -259,8 +259,7 @@ service:
 
   ## Provide any additional annotations which may be required. Evaluated as a template.
   ##
-  annotations: 
-    "consul.hashicorp.com/connect-inject": "true"
+  annotations: {}
   ## Set the LoadBalancer service type to internal only.
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
   ##
@@ -340,12 +339,10 @@ master:
   tolerations: []
   labels: 
     app: pq-postgresql
-  annotations: 
-    consul.hashicorp.com/connect-inject: true
+  annotations: {}
   podLabels:
     app: pq-postgresql
-  podAnnotations: 
-    consul.hashicorp.com/connect-inject: true
+  podAnnotations: {}
   priorityClassName: ""
   ## Extra init containers
   ## Example

@@ -1,20 +1,13 @@
 #!/bin/bash
 set -v
 
-
 nohup kubectl port-forward service/vault-ui 8200:8200 --pod-running-timeout=10m &
-nohup kubectl port-forward service/consul-consul-ui 8500:80 --pod-running-timeout=10m &
 
 sleep 5s
 
 vault status
 
-
 export VAULT_ADDR=http://127.0.0.1:8200
-export CONSUL_ADDR=http://127.0.0.1:8500
-
-
-cget() { curl -sf "http://127.0.0.1:8500/v1/kv/service/vault/$1?raw"; }
 
 curl \
   --silent \
@@ -24,13 +17,10 @@ curl \
   >(jq -r '.root_token' > /tmp/root-token) \
   >(jq -r '.keys[0]' > /tmp/unseal-key)
 
-curl -sfX PUT 127.0.0.1:8500/v1/kv/service/vault/unseal-key -d $(cat /tmp/unseal-key)
-curl -sfX PUT 127.0.0.1:8500/v1/kv/service/vault/root-token -d $(cat /tmp/root-token)
-
-vault operator unseal $(cget unseal-key)
-export ROOT_TOKEN=$(cget root-token)
+export UNSEAL_KEY=$(cat /tmp/unseal-key)
+vault operator unseal $UNSEAL_KEY
+export ROOT_TOKEN=$(cat /tmp/root-token)
 vault login $ROOT_TOKEN
-
 
 #Create admin user
 echo '
@@ -119,13 +109,6 @@ vault write auth/kubernetes/role/example \
         policies=transit-app-example \
         ttl=72h
 
-#go-movies-app
-vault write auth/kubernetes/role/go-movies-app \
-        bound_service_account_names=vault-auth \
-        bound_service_account_namespaces=default \
-        policies=transit-app-example \
-        ttl=72h
-
 vault write auth/kubernetes/role/vault_go_demo \
         bound_service_account_names=vault-auth \
         bound_service_account_namespaces=default \
@@ -142,16 +125,9 @@ vault secrets enable database
 vault write database/config/my-postgresql-database \
 plugin_name=postgresql-database-plugin \
 allowed_roles="my-role, vault_go_demo" \
-connection_url="postgresql://{{username}}:{{password}}@pq-postgresql-headless.service.consul:5432/vault_go_demo?sslmode=disable" \
+connection_url="postgresql://{{username}}:{{password}}@pq-postgresql-headless.default.svc:5432/vault_go_demo?sslmode=disable" \
 username="postgres" \
 password="password"
-
-vault write database/roles/my-role \
-db_name=my-postgresql-database \
-creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; \
-ALTER USER \"{{name}}\" WITH SUPERUSER;" \
-default_ttl="1h" \
-max_ttl="24h"
 
 vault write database/roles/vault_go_demo \
 db_name=my-postgresql-database \
@@ -160,5 +136,16 @@ ALTER USER \"{{name}}\" WITH SUPERUSER;" \
 default_ttl="1h" \
 max_ttl="24h"
 
+vault read database/creds/vault_go_demo
 
-vault read database/creds/my-role
+#Tokenization (Transform) setup
+vault secrets enable transform
+vault write transform/role/vault_go_demo transformations=ssn
+vault write transform/transformations/tokenization/ssn \
+    allowed_roles=vault_go_demo \
+    max_ttl=24h
+
+#Test
+vault write transform/encode/vault_go_demo value=335-42-1234 \
+    transformation=ssn \
+    ttl=8h 
