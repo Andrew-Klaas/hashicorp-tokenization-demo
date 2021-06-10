@@ -10,3 +10,5 @@ helm delete pq
 kubectl delete pvc data-pq-postgresql-0
 kubectl delete pvc data-vault-0
 
+pkill -9 kubectl
+
