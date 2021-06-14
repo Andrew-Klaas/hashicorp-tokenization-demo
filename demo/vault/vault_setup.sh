@@ -5,9 +5,9 @@ nohup kubectl port-forward service/vault-ui 8200:8200 --pod-running-timeout=10m 
 
 sleep 5s
 
-vault status
+export VAULT_ADDR="http://127.0.0.1:8200"
 
-export VAULT_ADDR=http://127.0.0.1:8200
+vault status
 
 curl \
   --silent \
@@ -22,7 +22,6 @@ vault operator unseal $UNSEAL_KEY
 export ROOT_TOKEN=$(cat /tmp/root-token)
 vault login $ROOT_TOKEN
 
-#Create admin user
 echo '
 path "*" {
     capabilities = ["create", "read", "update", "delete", "list", "sudo"]
@@ -30,69 +29,24 @@ path "*" {
 vault auth enable userpass
 vault write auth/userpass/users/vault password=vault policies=vault_admin
 
-#################################
-# Transit-app-example Vault setup
-#################################
-
 vault login -method=userpass username=vault password=vault
 
-# Enable our secret engine
-vault secrets enable -path=lob_a/workshop/database database
-vault secrets enable -path=lob_a/workshop/kv kv
-vault write lob_a/workshop/kv/transit-app-example username=vaultadmin password=vaultadminpassword
-
-vault secrets enable -path=lob_a/workshop/transit transit
-vault write -f lob_a/workshop/transit/keys/customer-key
-vault write -f lob_a/workshop/transit/keys/archive-key
-
-#transform
-# vault secrets enable transform
-# vault write transform/role/ssns transformations=ssn-fpe
-# vault write transform/transformation/ssn-fpe \
-#   type=fpe \
-#   template=builtin/socialsecuritynumber \
-#   tweak_source=internal \
-#   allowed_roles=ssns
-
-#ciphertext=$(vault write transform/encode/ssns value=123456789)
-#vault write transform/decode/ssns value=$ciphertext
-
-
-#Create Vault policy used by Nomad job
-cat << EOF > transit-app-example.policy
-path "lob_a/workshop/database/creds/workshop-app" {
-    capabilities = ["read", "list", "create", "update", "delete"]
-}
-path "lob_a/workshop/database/creds/workshop-app-long" {
-    capabilities = ["read", "list", "create", "update", "delete"]
-}
-path "lob_a/workshop/transit/*" {
-    capabilities = ["read", "list", "create", "update", "delete"]
-}
-path "lob_a/workshop/kv/*" {
-    capabilities = ["read", "list", "create", "update", "delete"]
-}
+cat << EOF > transform-app-example.policy
 path "*" {
     capabilities = ["read", "list", "create", "update", "delete"]
 }
-path "transit/*" {
+path "transform/*" {
     capabilities = ["read", "list", "create", "update", "delete"]
 }
 EOF
-vault policy write transit-app-example transit-app-example.policy
-
+vault policy write transform-app-example transform-app-example.policy
 
 kubectl create serviceaccount vault-auth
 
 kubectl apply --filename vault-auth-service-account.yaml
 
-# Set VAULT_SA_NAME to the service account you created earlier
 export VAULT_SA_NAME=$(kubectl get sa vault-auth -o jsonpath="{.secrets[*]['name']}" | awk '{ print $1 }')
-
-# Set SA_JWT_TOKEN value to the service account JWT used to access the TokenReview API
 export SA_JWT_TOKEN=$(kubectl get secret $VAULT_SA_NAME -o jsonpath="{.data.token}" | base64 --decode; echo)
-
-# Set SA_CA_CRT to the PEM encoded CA cert used to talk to Kubernetes API
 export SA_CA_CRT=$(kubectl get secret $VAULT_SA_NAME -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
 
 export K8S_HOST="https://kubernetes.default.svc:443"
@@ -106,20 +60,15 @@ vault write auth/kubernetes/config \
 vault write auth/kubernetes/role/example \
         bound_service_account_names=vault-auth \
         bound_service_account_namespaces=default \
-        policies=transit-app-example \
+        policies=transform-app-example \
         ttl=72h
 
 vault write auth/kubernetes/role/vault_go_demo \
         bound_service_account_names=vault-auth \
         bound_service_account_namespaces=default \
-        policies=transit-app-example \
+        policies=transform-app-example \
         ttl=72h
 
-#transit setup
-vault secrets enable transit
-vault write -f transit/keys/my-key
-
-##database setup
 vault secrets enable database
 
 vault write database/config/my-postgresql-database \
@@ -136,16 +85,10 @@ ALTER USER \"{{name}}\" WITH SUPERUSER;" \
 default_ttl="1h" \
 max_ttl="24h"
 
-vault read database/creds/vault_go_demo
-
-#Tokenization (Transform) setup
 vault secrets enable transform
 vault write transform/role/vault_go_demo transformations=ssn
 vault write transform/transformations/tokenization/ssn \
     allowed_roles=vault_go_demo \
     max_ttl=24h
 
-#Test
-vault write transform/encode/vault_go_demo value=335-42-1234 \
-    transformation=ssn \
-    ttl=8h 
+

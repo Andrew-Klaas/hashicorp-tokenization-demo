@@ -1,117 +1,42 @@
 # Available parameters and their default values for the Vault chart.
 
 global:
-  # enabled is the master enabled switch. Setting this to true or false
-  # will enable or disable all the components within this chart by default.
   enabled: true
-  # Image pull secret to use for registry authentication.
-  imagePullSecrets: []
-  # imagePullSecrets:
-  #   - name: image-pull-secret
-  # TLS for end-to-end encrypted transport
   tlsDisable: true
 
 injector:
-  # True if you want to enable vault agent injection.
-  enabled: true
+  enabled: false
   replicas: 1
 
 server:
-  # If not set to true, Vault server will not be installed. See vault.mode in _helpers.tpl for implementation details
-  enabled: true
-
-  # Resource requests, limits, etc. for the server cluster placement. This
-  # should map directly to the value of the resources field for a PodSpec.
-  # By default no direct resource request is made.
+  dev:
+    enabled: true
+    devRootToken: "root"
 
   image:
     repository: "hashicorp/vault-enterprise"
     tag: "1.7.2_ent"
-    # Overrides the default Image Pull Policy
     pullPolicy: IfNotPresent
-  # Ingress allows ingress services to be created to allow external access
-  # from Kubernetes to access Vault pods.
-  # If deployment is on OpenShift, the following block is ignored.
-  # In order to expose the service, use the route section below
   ingress:
     enabled: true
     labels:
       app: vault
-      # traffic: external
 
-  # Enables a headless service to be used by the Vault Statefulset
   service:
     enabled: false
-    # clusterIP controls whether a Cluster IP address is attached to the
-    # Vault service within Kubernetes.  By default the Vault service will
-    # be given a Cluster IP address, set to None to disable.  When disabled
-    # Kubernetes will create a "headless" service.  Headless services can be
-    # used to communicate with pods directly through DNS instead of a round robin
-    # load balancer.
-    #clusterIP: None
-
-    # Configures the service type for the main Vault service.  Can be ClusterIP
-    # or NodePort.
     type: ClusterIP
-
-    # If type is set to "NodePort", a specific nodePort value can be configured,
-    # will be random if left blank.
-    #nodePort: 30000
-
     # Port on which Vault server is listening
     port: 8200
     # Target port to which the service should be mapped to
     targetPort: 8200
 
-  # Run Vault in "standalone" mode. This is the default mode that will deploy if
-  # no arguments are given to helm. This requires a PVC for data storage to use
-  # the "file" backend.  This mode is not highly available and should not be scaled
-  # past a single replica.
-  standalone:
-    enabled: "-"
-
-    config: |
-      ui = true
-      listener "tcp" {
-        tls_disable = 1
-        address = "[::]:8200"
-        cluster_address = "[::]:8201"
-      }
-      storage "file" {
-        path = "/vault/data"
-      }
-      # Example configuration for using auto-unseal, using Google Cloud KMS. The
-      # GKMS keys must already exist, and the cluster must have a service account
-      # that is authorized to access GCP KMS.
-      #seal "gcpckms" {
-      #   project     = "vault-helm-dev"
-      #   region      = "global"
-      #   key_ring    = "vault-helm-unseal-kr"
-      #   crypto_key  = "vault-helm-unseal-key"
-      #}
-  ha:
-    enabled: false
-    replicas: 1
-
-# Vault UI
 ui:
-  # True if you want to create a Service entry for the Vault UI.
-  #
-  # serviceType can be used to control the type of service created. For
-  # example, setting this to "LoadBalancer" will create an external load
-  # balancer (for supported K8S installations) to access the UI.
   enabled: true
-  publishNotReadyAddresses: true
-  # The service should only contain selectors for active Vault pod
-  activeVaultPodOnly: false
-  serviceType: "ClusterIP"
-  serviceNodePort: null
+  serviceType: "LoadBalancer"
   externalPort: 8200
 
-# secrets-store-csi-driver-provider-vault
 csi:
   enabled: false
-
   image:
     repository: "hashicorp/vault-csi-provider"
     tag: "0.2.0"
