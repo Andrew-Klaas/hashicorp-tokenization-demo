@@ -9,17 +9,17 @@ export VAULT_ADDR="http://127.0.0.1:8200"
 
 vault status
 
-curl \
-  --silent \
-  --request PUT \
-  --data '{"secret_shares": 1, "secret_threshold": 1}' \
-  ${VAULT_ADDR}/v1/sys/init | tee \
-  >(jq -r '.root_token' > /tmp/root-token) \
-  >(jq -r '.keys[0]' > /tmp/unseal-key)
+# curl \
+#   --silent \
+#   --request PUT \
+#   --data '{"secret_shares": 1, "secret_threshold": 1}' \
+#   ${VAULT_ADDR}/v1/sys/init | tee \
+#   >(jq -r '.root_token' > /tmp/root-token) \
+#   >(jq -r '.keys[0]' > /tmp/unseal-key)
 
-export UNSEAL_KEY=$(cat /tmp/unseal-key)
-vault operator unseal $UNSEAL_KEY
-export ROOT_TOKEN=$(cat /tmp/root-token)
+#export UNSEAL_KEY=$(cat /tmp/unseal-key)
+#vault operator unseal $UNSEAL_KEY
+export ROOT_TOKEN=root
 vault login $ROOT_TOKEN
 
 echo '
@@ -91,4 +91,6 @@ vault write transform/transformations/tokenization/ssn \
     allowed_roles=vault_go_demo \
     max_ttl=24h
 
-
+vault write transform/encode/vault_go_demo \
+    transformation=ssn \
+    value="123-45-6789"

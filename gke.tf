@@ -15,7 +15,8 @@ variable "gke_num_nodes" {
 
 # GKE cluster
 resource "google_container_cluster" "primary" {
-  name     = "${var.project_id}-gke"
+  count = 2
+  name     = "${var.project_id}-gke-${count.index}"
   location = var.region
 
   remove_default_node_pool = true
@@ -32,13 +33,15 @@ resource "google_container_cluster" "primary" {
       issue_client_certificate = false
     }
   }
+
 }
 
 # Separately Managed Node Pool
 resource "google_container_node_pool" "primary_nodes" {
-  name       = "${google_container_cluster.primary.name}-node-pool"
+  count = 2
+  name       = "${google_container_cluster.primary[count.index].name}-node-pool-${count.index}"
   location   = var.region
-  cluster    = google_container_cluster.primary.name
+  cluster    = google_container_cluster.primary[count.index].name
   node_count = var.gke_num_nodes
 
   node_config {
@@ -59,24 +62,3 @@ resource "google_container_node_pool" "primary_nodes" {
     }
   }
 }
-
-
-# # Kubernetes provider
-# # The Terraform Kubernetes Provider configuration below is used as a learning reference only. 
-# # It references the variables and resources provisioned in this file. 
-# # We recommend you put this in another file -- so you can have a more modular configuration.
-# # https://learn.hashicorp.com/terraform/kubernetes/provision-gke-cluster#optional-configure-terraform-kubernetes-provider
-# # To learn how to schedule deployments and services using the provider, go here: https://learn.hashicorp.com/tutorials/terraform/kubernetes-provider.
-
-# provider "kubernetes" {
-#   load_config_file = "false"
-
-#   host     = google_container_cluster.primary.endpoint
-#   username = var.gke_username
-#   password = var.gke_password
-
-#   client_certificate     = google_container_cluster.primary.master_auth.0.client_certificate
-#   client_key             = google_container_cluster.primary.master_auth.0.client_key
-#   cluster_ca_certificate = google_container_cluster.primary.master_auth.0.cluster_ca_certificate
-# }
-

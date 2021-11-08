@@ -5,7 +5,7 @@ global:
   tlsDisable: true
 
 injector:
-  enabled: false
+  enabled: true
   replicas: 1
 
 server:
@@ -23,7 +23,7 @@ server:
       app: vault
 
   service:
-    enabled: false
+    enabled: true
     type: ClusterIP
     # Port on which Vault server is listening
     port: 8200

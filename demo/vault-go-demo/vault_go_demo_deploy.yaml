@@ -24,6 +24,10 @@ spec:
       labels:
         app: vault-go-demo
         version: v1
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "vault_go_demo"
+        vault.hashicorp.com/agent-inject-secret-foo: "secret/test"
     spec:
       serviceAccountName: vault-auth
       automountServiceAccountToken: true
